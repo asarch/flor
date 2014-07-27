@@ -1,3 +1,3 @@
 #!/bin/sh
 
-PERL5LIB=. perl main.pl
+PERL5LIB=. perl glut.pl
