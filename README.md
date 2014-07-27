@@ -1,4 +1,4 @@
 flor
 ====
 
-A simple render operation using OpenGL with Perl.
+Rendering the flor function using GLUT with Perl and the GtkGLExt with GTK+ 2.x with C and Perl programming languages.
