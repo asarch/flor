@@ -30,11 +30,18 @@
 ;;
 ;; *** TODO ***
 ;;
-;;  No se puede hacer esto directamente, tienes que declara
-;;  una funcion (de acuerdo con pjb) como:
+;;  Somehow, you cannot actually declare the callback for the mouse
+;;  motion a la CLOS way, accordingly with pjb@#lisp.FN you need to
+;;  use CFFI for that with:
 ;;
 ;;  (cffi:defcallback my-callback …)
 ;;  (glut:motion-func (cffi:callback my-callback))
+;;
+;;  For more information about the topic:
+;;
+;;  CFFI - The Common Foreign Function Interface
+;;
+;;  https://common-lisp.net/project/cffi/
 
 (cffi:defcallback motion-func (format t "Hello, world!"))
 
