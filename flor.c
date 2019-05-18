@@ -1,5 +1,9 @@
 #include <GL/glut.h>
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
 /*
  *  Para compilarlo, necesitas el paquete llamado freeglut, en OpenBSD lo puedes instalar con:
  *
@@ -29,10 +33,6 @@
  *  -lm -lGL -lGLU -lglut   \  # Las librerias que necesitas incluyendo a <math.h>
  *
  */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
 
 enum {ID_EXIT, ID_FULL_SCREEN};
 
