@@ -1,3 +1,4 @@
+(ql:quickload :cl-glu)
 (ql:quickload :cl-glut)
 
 (defclass point ()
@@ -12,16 +13,18 @@
 (defparameter *anti-alias* nil)
 (defparameter *lighting* nil)
 (defparameter *fullscreen* nil)
+(defparameter *display-list-id* 0)
 
-(defparameter *pos* (make-instance 'point :x 0.0 :y 0.0 :z 0.0))
-(defparameter *ang* (make-instance 'point :x 0.0 :y 0.0 :z 0.0))
-(defparameter *init-ang* (make-instance 'point :x 0.0 :y 0.0 :z 0.0))
+(defparameter *pos* (make-instance 'point :z (- 3)))
+(defparameter *ang* (make-instance 'point))
+(defparameter *init-ang* (make-instance 'point))
 
 (defun axis (size)
   (gl:begin :lines)
-  (gl:color 1.0 0.0 0.0) (gl:vertex -size 0.0 0.0) (gl:vertex size 0.0 0.0)
-  (gl:color 0.0 1.0 0.0) (gl:vertex 0.0 -size 0.0) (gl:vertex 0.0 size 0.0)
-  (gl:color 0.0 0.0 1.0) (gl:vertex 0.0 0.0 -size) (gl:vertex 0.0 0.0 size))
+  (gl:color 1.0 0.0 0.0) (gl:vertex (- size) 0.0 0.0) (gl:vertex size 0.0 0.0)
+  (gl:color 0.0 1.0 0.0) (gl:vertex 0.0 (- size) 0.0) (gl:vertex 0.0 size 0.0)
+  (gl:color 0.0 0.0 1.0) (gl:vertex 0.0 0.0 (- size)) (gl:vertex 0.0 0.0 size)
+  (gl:end))
 
 (defun init-glscene ()
   (cond ((not (null *anti-alias*)) ;; Antialias
@@ -47,14 +50,39 @@
     (gl:enable :normalize)
     (gl:enable :color-material))
 
-  (let (angle (points 17) (radius 1.0))
+  (let (angle coords radian (points 17) (radius 1.0))
+    (setf coords (make-array points :fill-pointer 0 :adjustable t))
     (setf angle (/ 360.0 points))
-    ;; Operaciones para calcular los puntos de la flor  
-    ))
+    
+    ;; Save coords
+    (loop for i from 1 to points do
+      (setf radian (/ (* (* angle i) pi) 180))
+      (vector-push-extend (make-instance 'point :x (* radius (cos radian)) :y (* radius (sin radian))) coords))
+    
+    (setf *display-list-id* (gl:new-list *display-list-id* :compile))
+    
+    (cond ((not (null *display-list-id*))
+	   (gl:new-list *display-list-id* :compile)
+	   (gl:begin :lines)
+	   
+	   (loop for i from 1 to points do
+	     (loop for j from i to points do
+	       (gl:vertex (x (elt coords i)) (y (elt coords i)))
+	       (gl:vertex (x (elt coords j)) (y (elt coords j)))))
+	   
+	   (gl:end)
+	   
+	   (let ((quadric-object (glu:new-quadric)))	   
+	     (cond ((not (null quadric-object))
+		    (glu:quadric-draw-style quadric-object :silhouette)
+		    (glu:partial-disk quadric-object 0.0 1.0 64 32 0 360)
+		    (glu:delete-quadric quadric-object))))
+	   
+	   (gl:end-list)))))
 
 (defclass window (glut:window)
   ()
-  (:default-initargs :title "Gears" :mode '(:double :rgb :depth)))
+  (:default-initargs :title "Flor" :mode '(:double :rgb :depth)))
 
 (defmethod glut:display ((w window))
   (gl:clear :color-buffer-bit :depth-buffer-bit)
@@ -62,7 +90,9 @@
   (gl:translate (x *pos*) (y *pos*) (z *pos*))
   (gl:rotate (x *ang*) 0.0 1.0 0.0)
   (gl:rotate (y *ang*) 1.0 0.0 0.0)
-  (if *display-id* (gl:call-list *display-id*))
+  
+  (if *display-list-id* (gl:call-list *display-list-id*))
+  
   (glut:swap-buffers))
 
 (defmethod glut:reshape ((w window) width height)
@@ -74,15 +104,17 @@
       (gl:matrix-mode :modelview)
       (gl:load-identity)))
 
-(defmethod glut:idle-func ((w window))
-  (+1 (x *ang*))
-  (+1 (y *ang*))
-  (glut:post-redisplay))
+;; CL-GLUT:IDLE-FUNC already names an ordinary function or a macro.
+;;(defmethod glut:idle-func ((w window))
+;;  (incf (x *ang*))
+;;  (incf (y *ang*))
+;;  (glut:post-redisplay))
 
-(defmethod glut:keyboard-func ((w window) key x y)
-  ;; if (key == 120) {exit if (glutGetModifiers() & GLUT_ACTIVE_ALT);
-  (if (= key 120)
-      (if (and (glut:get-modifiers) :active-alt)
+;; CL-GLUT:KEYBOARD-FUNC already names an ordinary function or a macro.
+;;(defmethod glut:keyboard-func ((w window) key x y)
+;;  ;; if (key == 120) {exit if (glutGetModifiers() & GLUT_ACTIVE_ALT);
+;;  (if (= key 120)
+;;      (if (and (glut:get-modifiers) :active-alt)
 	  (sb-ext:exit))))
 
 (defmethod glut:special-func ((w window) key x y)
@@ -117,24 +149,28 @@
     (setf (y *init-ang*) y)
     (glut:post-redisplay)))
 
-(defmethod glut:idle-func ((w window))
-  (+1 (x *ang*))
-  (+1 (y *ang*))
-  (glut:post-redisplay))
+;; CL-GLUT:IDLE-FUNC already names an ordinary function or a macro.
+;;(defmethod glut:idle-func ((w window))
+;;  (incf (x *ang*))
+;;  (incf (y *ang*))
+;;  (glut:post-redisplay))
 
 (defmethod glut:create-menu ((w window) value)
   (if (= value :exit) (sb-ext:exit))
   (if (= value +full-screen+) (set-fullscreen)))
 
+(defun show (msg)
+(format t "~a~%" msg))
+
 (let ((window (make-instance 'window)))
   (setf glut:*run-main-loop-after-display* nil)
-  (glut:init)
-  (init-glscene)
-  (glut:display-window window)
-  (glut:add-menu-entry "Pantalla completa\tF5" +full-screen+)
-  (glut:add-menu-entry "Salir\tAlt+x" +exit+)
-  (glut:attach-menu :right-button)
-  (glut:main-loop))
+  (show "Doing (glut:init)") (glut:init)
+  (show "Doing (init-glscene") (init-glscene)
+  (show "Doing (glut:display-window window") (glut:display-window window)
+  (show "Doing (glut:add-menu-entry") (glut:add-menu-entry "Full Screen\tF5" +full-screen+)
+  (show "Doing (glut:add-menu-entry") (glut:add-menu-entry "Exit\tAlt+x" +exit+)
+  (show "Doing (glut:attach-menu") (glut:attach-menu :right-button)
+  (show "Doing (glut:main-loop") (glut:main-loop))
 
 ;;--------------------------------------------------------------------
 ;;
